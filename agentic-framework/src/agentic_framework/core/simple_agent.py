@@ -15,7 +15,7 @@ class SimpleAgent(Agent):
     No MCP access (mcp_servers=None in registry).
     """
 
-    def __init__(self, model_name: str = "gpt-5-nano", temperature: float = 0.0, **kwargs):
+    def __init__(self, model_name: str = "gpt-5-nano", temperature: float = 0.0, **kwargs: Any) -> None:
         self.model = ChatOpenAI(model=model_name, temperature=temperature)
         self.prompt = ChatPromptTemplate.from_messages(
             [("system", "You are a helpful assistant."), ("user", "{input}")]
