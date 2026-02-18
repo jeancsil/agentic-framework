@@ -1,7 +1,3 @@
-from dotenv import load_dotenv
-
-load_dotenv()  # Must be called before importing constants (which reads env vars)
-
 import asyncio
 import logging
 import traceback
