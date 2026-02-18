@@ -1,17 +1,18 @@
+from dotenv import load_dotenv
+
+load_dotenv()  # Must be called before importing constants (which reads env vars)
+
 import asyncio
 import logging
 import traceback
 from typing import Any, Callable, Type
 
 import typer
-from dotenv import load_dotenv
 from rich.console import Console
 
 from agentic_framework.constants import LOGS_DIR
 from agentic_framework.mcp import MCPConnectionError, MCPProvider
 from agentic_framework.registry import AgentRegistry
-
-load_dotenv()
 
 RUN_TIMEOUT_SECONDS = 600
 
