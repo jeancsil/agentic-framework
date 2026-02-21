@@ -89,7 +89,7 @@ class CalculatorTool(Tool):
 
 
 class WeatherTool(Tool):
-    """A mock weather tool."""
+    """A mock weather tool for testing."""
 
     @property
     def name(self) -> str:
