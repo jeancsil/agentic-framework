@@ -1,194 +1,254 @@
 # Agentic Framework
 
-An educational LangChain + MCP framework for learning and building agentic systems in Python 3.12+.
+A LangChain + MCP framework for building agentic systems in Python 3.12+.
 
 ![Build Status](https://github.com/jeancsil/agentic-framework/actions/workflows/ci.yml/badge.svg)
 ![Python Version](https://img.shields.io/badge/python-3.12%2B-blue)
 ![GitHub License](https://img.shields.io/github/license/jeancsil/agentic-framework)
 
-## Goal of This Repository
+## What is this?
 
-This project is intentionally small so you can learn the core building blocks of agentic coding:
+This framework helps you build AI agents that can:
+- Use **local tools** (file operations, code search, etc.)
+- Connect to **MCP servers** (web search, flight booking, etc.)
+- Combine both in a single runtime
 
-- agent registry and dynamic CLI commands
-- reusable LangGraph agent pattern
-- optional MCP server access with explicit per-agent permissions
-- local tools + MCP tools combined in one runtime
-- testable architecture (no network required in unit tests)
+**Key features:**
+- Decorator-based agent registration with automatic CLI generation
+- Reusable LangGraph agent pattern with checkpointing
+- Per-agent MCP server permissions
+- Multi-language code navigation tools
+- Safe file editing with automatic syntax validation
 
-## Prerequisites
-
-- Python >= 3.12, < 3.14
-- [uv](https://docs.astral.sh/uv/) (recommended)
-
-## Quickstart
+## Quick Start
 
 ```bash
+# Install dependencies
 make install
+
+# Run tests
 make test
+
+# List available agents
+uv --directory agentic-framework run agentic-run list
+
+# Run the developer agent
+uv --directory agentic-framework run agentic-run developer -i "Explain the project structure"
 ```
 
-Run a specialized agent for codebase exploration:
+## Available Agents
+
+| Agent | Purpose | MCP Access | Tools |
+|-------|---------|------------|-------|
+| `developer` | Codebase exploration & editing | webfetch | find_files, discover_structure, get_file_outline, read_file_fragment, code_search, edit_file |
+| `travel-coordinator` | Multi-agent trip planning | kiwi-com-flight-search, web-fetch | Orchestrates 3 specialist agents |
+| `chef` | Recipe suggestions | tavily | web_search |
+| `news` | AI news aggregation | web-fetch | - |
+| `travel` | Flight search | kiwi-com-flight-search | - |
+| `simple` | Basic conversation | none | - |
+
+## CLI Reference
 
 ```bash
-uv --project agentic-framework run agentic-run developer -i "List the project structure and explain what the main components do."
+# List all agents
+uv --directory agentic-framework run agentic-run list
+
+# Get agent info
+uv --directory agentic-framework run agentic-run info <agent>
+
+# Run an agent
+uv --directory agentic-framework run agentic-run <agent> -i "your input"
+
+# With timeout (seconds)
+uv --directory agentic-framework run agentic-run <agent> -i "input" -t 120
+
+# Verbose logging
+uv --directory agentic-framework run agentic-run <agent> -i "input" -v
 ```
 
-List all available agents:
+## Developer Agent
 
+The `developer` agent is a Principal Software Engineer assistant for codebase work.
+
+**Available tools:**
+
+| Tool | Description | Input Format |
+|------|-------------|--------------|
+| `find_files` | Search files by name | `pattern` |
+| `discover_structure` | Directory tree | `[max_depth]` |
+| `get_file_outline` | Extract signatures | `file_path` |
+| `read_file_fragment` | Read line range | `path:start:end` |
+| `code_search` | Pattern search | `pattern` |
+| `edit_file` | Edit files | See below |
+
+**Supported languages for `get_file_outline`:** Python, JavaScript, TypeScript, Rust, Go, Java, C/C++, PHP
+
+**File editing workflow:**
 ```bash
-uv --project agentic-framework run agentic-run list
+# Search/replace (recommended - no line numbers needed)
+{"op": "search_replace", "path": "file.py", "old": "exact text", "new": "new text"}
+
+# Line-based operations
+replace:path:start:end:content
+insert:path:after_line:content
+delete:path:start:end
 ```
 
-## Docker Support 🐳
+## Multi-Agent Systems
 
-Run the framework in Docker with mounted volumes for live code updates:
+The `travel-coordinator` demonstrates multi-agent orchestration:
 
 ```bash
-# Build the Docker image
+uv --directory agentic-framework run agentic-run travel-coordinator -i "Plan a 5-day trip from Lisbon to Berlin in May"
+```
+
+**Workflow:**
+1. `FlightSpecialistAgent` → gathers flight options
+2. `CityIntelAgent` → adds destination intelligence
+3. `TravelReviewerAgent` → final itinerary
+
+## Docker Support
+
+```bash
+# Build image
 make docker-build
 
-# Run agents using the shell wrapper
-bin/agent.sh developer -i "Search for all Tool definitions in the project"
+# Run agents
+bin/agent.sh developer -i "Search for all Tool definitions"
 bin/agent.sh chef -i "I have bread, tuna, lettuce and mayo"
-bin/agent.sh list
 
-# Access logs (same location as local)
+# View logs
 tail -f agentic-framework/logs/agent.log
 ```
 
-**Key Features:**
-- ✅ No rebuild needed when changing Python code (mounted volumes)
-- ✅ Environment variables safely loaded from `.env`
-- ✅ Logs accessible from host machine
-- ✅ Uses `uv` just like local development
-- ✅ Simple shell wrapper mimics local CLI experience
+## Environment Variables
 
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `OPENAI_MODEL_NAME` | No | LLM model (default: gpt-4) |
+| `OPENAI_API_KEY` | Yes | OpenAI API key |
+| `TAVILY_API_KEY` | For chef agent | Tavily search API |
+| `TINYFISH_API_KEY` | Optional | TinyFish MCP access |
 
-## Featured Agents
+## Building New Agents
 
-| Agent | What it does | MCP Access |
-|---|---|---|
-| `developer` | 🚀 **Principal Engineer** assistant for codebase exploration and search | `web-fetch` |
-| `travel-coordinator` | ✈️ **Multi-agent Orchestrator** (Flights + City Intel + Reviewer) | `kiwi-com-flight-search`, `web-fetch` |
-| `chef` | 🍳 Recipe suggestions from ingredients | `tavily` |
-| `news` | 📰 AI news assistant (TechCrunch specialist) | `web-fetch` |
-| `travel` | 🎫 Flight planning assistant | `kiwi-com-flight-search` |
-| `simple` | 💬 Basic conversational chain | none |
-
-## Showcase: Developer Agent
-
-The `developer` agent is designed to assist with codebase maintenance and understanding. It comes equipped with local tools for:
-- **File Discovery**: Finding files by name across the project.
-- **Structure Exploration**: Visualizing the project directory tree.
-- **Code Outlining**: Extracting functions, classes, and signatures from code files.
-  - Supports: Python, JavaScript, TypeScript, Rust, Go, Java, C/C++, PHP
-  - Returns line numbers for precise navigation.
-- **Pattern Search**: Global search using `ripgrep` for fast pattern matching.
-
-Implementation: `src/agentic_framework/core/developer_agent.py`
-
-## Showcase: Travel Coordinator (Multi-Agent System)
-
-Run:
-
-```bash
-uv --project agentic-framework run agentic-run travel-coordinator -i "Plan a 5-day trip from Lisbon to Berlin in May."
-```
-
-This example demonstrates complex orchestration using two remote MCP servers: `kiwi-com-flight-search` and `web-fetch`.
-
-**How it works:**
-
-1. **FlightSpecialistAgent** uses MCP tools to gather flight options.
-2. **CityIntelAgent** receives the flight report and adds destination intelligence.
-3. **TravelReviewerAgent** receives both reports and returns the final itinerary brief.
-
-The coordinator implementation lives in: `src/agentic_framework/core/travel_coordinator_agent.py`
-
-## Architecture (Beginner-Friendly)
-
-Core flow:
-
-1. Register an agent in `src/agentic_framework/registry.py`.
-2. CLI discovers registered agents and creates commands automatically.
-3. If an agent has MCP permissions, CLI opens those MCP tool sessions.
-4. Agent runs with local tools + MCP tools and returns final response.
-
-Key files:
-
-- `agentic-framework/src/agentic_framework/core/langgraph_agent.py`: reusable base class for most agents
-- `agentic-framework/src/agentic_framework/mcp/config.py`: all available MCP servers
-- `agentic-framework/src/agentic_framework/registry.py`: agent registration + allowed MCP servers
-- `agentic-framework/src/agentic_framework/cli.py`: command runner and error handling
-
-## Create a New Agent
-
-Minimal pattern:
+### Minimal Agent
 
 ```python
 from agentic_framework.core.langgraph_agent import LangGraphMCPAgent
 from agentic_framework.registry import AgentRegistry
 
-
-@AgentRegistry.register("my-agent", mcp_servers=["tavily", "web-fetch"])
+@AgentRegistry.register("my-agent", mcp_servers=["tavily"])
 class MyAgent(LangGraphMCPAgent):
     @property
     def system_prompt(self) -> str:
         return "You are my custom agent."
 ```
 
-Optional local tools:
+### Agent with Local Tools
 
 ```python
-def local_tools(self):
-    return [my_langchain_tool]
+from langchain_core.tools import StructuredTool
+from agentic_framework.core.langgraph_agent import LangGraphMCPAgent
+from agentic_framework.registry import AgentRegistry
+
+@AgentRegistry.register("my-agent", mcp_servers=None)
+class MyAgent(LangGraphMCPAgent):
+    @property
+    def system_prompt(self) -> str:
+        return "You are a helpful assistant."
+
+    def local_tools(self) -> list:
+        return [
+            StructuredTool.from_function(
+                func=my_function,
+                name="my_tool",
+                description="What this tool does",
+            )
+        ]
 ```
 
-## Build Complex Coordinators (No Base Changes)
+### Multi-Agent Coordinator
 
-Use this repeatable pattern for multi-agent systems:
+```python
+from agentic_framework.interfaces.base import Agent
+from agentic_framework.registry import AgentRegistry
 
-1. Create small specialist classes that subclass `LangGraphMCPAgent`.
-2. Create one coordinator class that implements `Agent` directly.
-3. Register only the coordinator in `AgentRegistry` with allowed MCP servers.
-4. In coordinator `run()`, call specialists in stages and pass each stage output to the next.
-5. Keep coordinator logic explicit in Python (handoff format, retries, branch rules).
-6. Add unit tests that assert call order and stage-to-stage context propagation.
+@AgentRegistry.register("coordinator", mcp_servers=["server1", "server2"])
+class CoordinatorAgent(Agent):
+    async def run(self, input_data, config=None):
+        # Stage 1: First specialist
+        specialist1 = Specialist1Agent()
+        result1 = await specialist1.run(input_data)
 
-This is the same pattern used by `travel-coordinator` and scales to routers, supervisors, and team-of-agents designs.
+        # Stage 2: Second specialist
+        specialist2 = Specialist2Agent()
+        result2 = await specialist2.run(result1)
 
-After adding the file under `src/agentic_framework/core/`, the CLI command appears automatically:
+        return result2
+
+    def get_tools(self):
+        return []
+```
+
+After creating your agent in `src/agentic_framework/core/`, it automatically becomes available:
 
 ```bash
-uv --project agentic-framework run agentic-run my-agent -i "hello"
+uv --directory agentic-framework run agentic-run my-agent -i "hello"
 ```
 
+## Architecture
 
-## Scaling to Coordinators and Multi-Agent Systems
+```
+User Input
+    │
+    ▼
+┌─────────────────┐
+│   CLI (Typer)   │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐     ┌─────────────────┐
+│ AgentRegistry   │────▶│ Agent Discovery │
+└────────┬────────┘     └─────────────────┘
+         │
+         ▼
+┌─────────────────┐     ┌─────────────────┐
+│  MCPProvider    │────▶│  MCP Servers    │
+└────────┬────────┘     └─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│ LangGraph Agent │
+│  (base class)   │
+└────────┬────────┘
+         │
+    ┌────┴────┐
+    ▼         ▼
+┌───────┐ ┌───────┐
+│ Local │ │  MCP  │
+│ Tools │ │ Tools │
+└───────┘ └───────┘
+```
 
-Recommended approach:
+**Key files:**
+- `src/agentic_framework/core/langgraph_agent.py` - Reusable agent base
+- `src/agentic_framework/registry.py` - Agent registration
+- `src/agentic_framework/mcp/provider.py` - MCP connection management
+- `src/agentic_framework/tools/` - Tool implementations
 
-1. Build each specialist as a small `LangGraphMCPAgent` subclass.
-2. Keep MCP permissions strict per specialist in the registry.
-3. Add a coordinator agent that routes user intent to specialists.
-4. Keep shared policies/prompts in one place; keep specialist prompts focused.
-5. Add contract tests for routing and handoff behavior.
+## Development
 
-This keeps the code easy for medium-level engineers to extend while remaining production-friendly.
+```bash
+make install    # Install dependencies
+make test       # Run tests (coverage threshold: 60%)
+make lint       # Run mypy + ruff
+make format     # Auto-format code
+make check      # Run all checks (lint + format check)
+```
 
-## Development Commands
+**Before committing:** Run `make check && make test`
 
-### Local Development
-- `make install`: install dependencies
-- `make test`: run tests (coverage threshold configured to fail under 60%)
-- `make lint`: run mypy + ruff
-- `make run`: run a sample agent
-- `make clean`: remove caches and temporary artifacts
+## License
 
-### Docker
-- `make docker-build`: build Docker image
-- `make docker-clean`: remove containers and images
-- `bin/agent.sh <agent> [args]`: run agents in Docker (see [DOCKER.md](DOCKER.md))
-
-See `make help` for all available commands.
+MIT License - see [LICENSE](LICENSE) for details.
