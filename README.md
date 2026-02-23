@@ -20,21 +20,97 @@ This framework helps you build AI agents that can:
 - Multi-language code navigation tools
 - Safe file editing with automatic syntax validation
 
-## Quick Start
+---
+
+## Quick Start (Docker - Recommended)
+
+**Docker is the recommended way to run this framework.** It comes pre-configured with all required tools and dependencies.
 
 ```bash
-# Install dependencies
+# Build the Docker image
+make docker-build
+
+# Run agents (no rebuild needed for code changes)
+bin/agent.sh developer -i "Explain project structure"
+bin/agent.sh chef -i "I have eggs and cheese"
+bin/agent.sh list
+
+# View logs (same location as local)
+tail -f agentic-framework/logs/agent.log
+```
+
+**Why Docker?**
+- All dependencies pre-installed: `ripgrep`, `fd`, `fzf`, `tree-sitter`
+- No environment setup needed - just build and run
+- Code changes reflected immediately (mounted volumes)
+- Consistent environment across all machines
+
+---
+
+## Local Installation
+
+If you need to run locally, you must install these dependencies:
+
+**System packages:**
+- `ripgrep` - Ultra-fast text searching
+- `fd` - User-friendly alternative to `find`
+- `fzf` - General-purpose command-line fuzzy finder
+
+**Python packages (managed by `uv`):**
+- `tree-sitter` - Parser generator
+- `tree-sitter-languages` - Grammar packages
+
+```bash
+# Install Python dependencies
 make install
 
 # Run tests
 make test
 
-# List available agents
-uv --directory agentic-framework run agentic-run list
-
-# Run the developer agent
-uv --directory agentic-framework run agentic-run developer -i "Explain the project structure"
+# Run agents
+uv --directory agentic-framework run agentic-run developer -i "Explain project structure"
 ```
+
+---
+
+## Available Tools
+
+| Tool | Purpose | Input Format |
+|-------|---------|--------------|
+| `find_files` | Fast file search via `fd` | `pattern` |
+| `discover_structure` | Directory tree exploration | `[max_depth]` (default: 3) |
+| `get_file_outline` | Extract class/function signatures | `file_path` |
+| `read_file_fragment` | Read specific line ranges | `path:start:end` (1-indexed) |
+| `code_search` | Pattern search via `ripgrep` | `regex_pattern` |
+| `edit_file` | Safe file editing with syntax validation | See below |
+| `web_search` | Web search via Tavily | `query` |
+
+### File Editing
+
+**RECOMMENDED: search_replace (no line numbers needed)**
+```json
+{"op": "search_replace", "path": "file.py", "old": "exact text", "new": "replacement text"}
+```
+
+**Line-based operations:**
+```
+replace:path:start:end:content
+insert:path:after_line:content
+delete:path:start:end
+```
+
+---
+
+## Available MCP Servers
+
+| Server | Purpose | API Key Required |
+|--------|---------|------------------|
+| `kiwi-com-flight-search` | Flight search | No |
+| `webfetch` | Web content fetching | No |
+| `tavily` | Web search | Yes (`TAVILY_API_KEY`) |
+| `tinyfish` | AI assistant | Yes (`TINYFISH_API_KEY`) |
+
+---
 
 ## Available Agents
 
@@ -46,6 +122,8 @@ uv --directory agentic-framework run agentic-run developer -i "Explain the proje
 | `news` | AI news aggregation | web-fetch | - |
 | `travel` | Flight search | kiwi-com-flight-search | - |
 | `simple` | Basic conversation | none | - |
+
+---
 
 ## CLI Reference
 
@@ -66,40 +144,28 @@ uv --directory agentic-framework run agentic-run <agent> -i "input" -t 120
 uv --directory agentic-framework run agentic-run <agent> -i "input" -v
 ```
 
+**In Docker:**
+```bash
+bin/agent.sh <agent> -i "input"
+bin/agent.sh list
+```
+
+---
+
 ## Developer Agent
 
 The `developer` agent is a Principal Software Engineer assistant for codebase work.
 
-**Available tools:**
-
-| Tool | Description | Input Format |
-|------|-------------|--------------|
-| `find_files` | Search files by name | `pattern` |
-| `discover_structure` | Directory tree | `[max_depth]` |
-| `get_file_outline` | Extract signatures | `file_path` |
-| `read_file_fragment` | Read line range | `path:start:end` |
-| `code_search` | Pattern search | `pattern` |
-| `edit_file` | Edit files | See below |
-
 **Supported languages for `get_file_outline`:** Python, JavaScript, TypeScript, Rust, Go, Java, C/C++, PHP
 
-**File editing workflow:**
-```bash
-# Search/replace (recommended - no line numbers needed)
-{"op": "search_replace", "path": "file.py", "old": "exact text", "new": "new text"}
-
-# Line-based operations
-replace:path:start:end:content
-insert:path:after_line:content
-delete:path:start:end
-```
+---
 
 ## Multi-Agent Systems
 
 The `travel-coordinator` demonstrates multi-agent orchestration:
 
 ```bash
-uv --directory agentic-framework run agentic-run travel-coordinator -i "Plan a 5-day trip from Lisbon to Berlin in May"
+bin/agent.sh travel-coordinator -i "Plan a 5-day trip from Lisbon to Berlin in May"
 ```
 
 **Workflow:**
@@ -107,19 +173,7 @@ uv --directory agentic-framework run agentic-run travel-coordinator -i "Plan a 5
 2. `CityIntelAgent` → adds destination intelligence
 3. `TravelReviewerAgent` → final itinerary
 
-## Docker Support
-
-```bash
-# Build image
-make docker-build
-
-# Run agents
-bin/agent.sh developer -i "Search for all Tool definitions"
-bin/agent.sh chef -i "I have bread, tuna, lettuce and mayo"
-
-# View logs
-tail -f agentic-framework/logs/agent.log
-```
+---
 
 ## Environment Variables
 
@@ -129,6 +183,8 @@ tail -f agentic-framework/logs/agent.log
 | `OPENAI_API_KEY` | Yes | OpenAI API key |
 | `TAVILY_API_KEY` | For chef agent | Tavily search API |
 | `TINYFISH_API_KEY` | Optional | TinyFish MCP access |
+
+---
 
 ## Building New Agents
 
@@ -197,6 +253,8 @@ After creating your agent in `src/agentic_framework/core/`, it automatically bec
 uv --directory agentic-framework run agentic-run my-agent -i "hello"
 ```
 
+---
+
 ## Architecture
 
 ```
@@ -237,17 +295,22 @@ User Input
 - `src/agentic_framework/mcp/provider.py` - MCP connection management
 - `src/agentic_framework/tools/` - Tool implementations
 
+---
+
 ## Development
+
+For contributing to the framework itself, see [AGENTS.md](AGENTS.md).
 
 ```bash
 make install    # Install dependencies
 make test       # Run tests (coverage threshold: 60%)
-make lint       # Run mypy + ruff
 make format     # Auto-format code
 make check      # Run all checks (lint + format check)
 ```
 
 **Before committing:** Run `make check && make test`
+
+---
 
 ## License
 

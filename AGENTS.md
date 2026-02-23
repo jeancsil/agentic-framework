@@ -451,6 +451,23 @@ Before saying a task is complete:
 - [ ] `make test` passes with no failures
 - [ ] Coverage maintained or improved
 - [ ] No new warnings introduced
+- [ ] README.md is updated if public API or agents/tools changed
+
+## KEEPING README.md IN SYNC
+
+**README.md must stay in sync with framework changes.**
+
+Update README.md when you:
+- Add a new agent (add to Available Agents table)
+- Add a new tool (add to Available Tools table)
+- Add a new MCP server (add to Available MCP Servers table)
+- Change public API (update Architecture section if needed)
+- Modify agent capabilities (update agent descriptions)
+
+**Do NOT:**
+- Leave outdated information in README.md
+- Document features that no longer exist
+- Skip updating relevant sections
 
 ---
 
