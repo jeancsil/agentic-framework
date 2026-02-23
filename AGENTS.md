@@ -22,8 +22,9 @@ You are an LLM agent tasked with improving, fixing, or extending the **agentic-f
 6. **ALWAYS** follow existing code patterns in the codebase.
 7. **ALWAYS** add tests for new functionality.
 8. **ALWAYS** update docstrings if you change function behavior.
-9. **ALWAYS** use `uv` for package management (not pip, not poetry).
-10. **ALWAYS** run commands from the correct directory (see Working Directory).
+9. **ALWAYS** use `uv` for package management - **NO EXCEPTIONS** (not pip, not poetry, not pipenv).
+10. **ALWAYS** prefer Docker for running the framework locally (see Docker section).
+11. **ALWAYS** run commands from the correct directory (see Working Directory).
 
 ### NEVER Rules
 
@@ -37,6 +38,8 @@ You are an LLM agent tasked with improving, fixing, or extending the **agentic-f
 8. **NEVER** raise exceptions from tools - return error strings instead.
 9. **NEVER** edit generated files (uv.lock, etc.) directly.
 10. **NEVER** ignore deprecation warnings - fix them.
+11. **NEVER** use pip, pipenv, poetry, or any package manager other than `uv`.
+12. **NEVER** install dependencies locally when Docker can be used instead.
 
 ### BEFORE Rules
 
@@ -55,16 +58,16 @@ You are an LLM agent tasked with improving, fixing, or extending the **agentic-f
 
 ## WORKING DIRECTORY
 
-You are in `/Users/jeancsil/code/agents/agentic-framework/`. The project root is one level up.
+The framework code lives in `agentic-framework/` subdirectory. The project root (with Makefile) is one level up.
 
 ```bash
-# Run make commands from parent directory
+# If you're in agentic-framework/ directory, run make commands from parent:
 make -C .. check
 make -C .. test
 make -C .. format
 
-# Or use full path
-make -C /Users/jeancsil/code/agents check
+# Or navigate to project root first:
+cd .. && make check
 ```
 
 ---
@@ -98,6 +101,85 @@ If checks or tests fail:
 2. Fix the issue
 3. Re-run the failing command
 4. Repeat until all pass
+
+---
+
+## UV IS MANDATORY
+
+**This project uses `uv` exclusively.** No other package manager is allowed.
+
+### Why uv?
+- Fast dependency resolution
+- Consistent lockfile (uv.lock)
+- Built-in virtual environment management
+- Replaces pip, pip-tools, poetry, pipenv
+
+### Required Commands
+
+```bash
+# Install dependencies
+uv sync
+
+# Add a dependency
+uv add package-name
+
+# Add a dev dependency
+uv add --dev package-name
+
+# Run a command in the virtual environment
+uv run <command>
+
+# Update lockfile
+uv lock --upgrade-package package-name
+```
+
+### Forbidden Commands
+
+```bash
+# NEVER use these:
+pip install package-name      # WRONG
+pipenv install package-name   # WRONG
+poetry add package-name       # WRONG
+pip install -r requirements.txt  # WRONG
+```
+
+If you need a dependency, use `uv add`. No exceptions.
+
+---
+
+## DOCKER (PREFERRED)
+
+**Docker is the preferred way to run and test the framework.** Avoid installing dependencies locally.
+
+### Why Docker?
+- Consistent environment across all machines
+- No pollution of local Python environment
+- Easy cleanup and isolation
+- Matches production deployment
+
+### Docker Commands
+
+```bash
+# Build the Docker image
+make docker-build
+
+# Run agents in Docker
+bin/agent.sh developer -i "Explain the project structure"
+bin/agent.sh chef -i "I have eggs and cheese"
+bin/agent.sh list
+
+# Run tests in Docker
+docker compose run --rm app make test
+
+# View logs (same location as local)
+tail -f agentic-framework/logs/agent.log
+```
+
+### Docker Benefits
+- No rebuild needed when changing Python code (mounted volumes)
+- Environment variables loaded from `.env`
+- Logs accessible from host machine
+- Uses `uv` just like local development
 
 ---
 
@@ -187,7 +269,7 @@ class MyAgent(LangGraphMCPAgent):
 
 ### Test Location
 
-Tests are in `/Users/jeancsil/code/agents/agentic-framework/tests/`
+Tests are in `agentic-framework/tests/`
 
 ### Test Naming
 
@@ -276,11 +358,6 @@ If the hook fails:
 1. Run `make -C .. check` to see errors
 2. Fix all errors
 3. Try pushing again
-
-To bypass the hook (NOT RECOMMENDED):
-```bash
-git push --no-verify
-```
 
 ---
 
