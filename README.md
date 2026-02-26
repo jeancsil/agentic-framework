@@ -3,13 +3,13 @@
 # 🤖 Agentic Framework
 **Build AI agents that *actually* do things.**
 
-[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![LangChain](https://img.shields.io/badge/langchain-%23007BA7.svg?style=for-the-badge&logo=langchain&logoColor=white)](https://python.langchain.com/)
-[![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-green?style=for-the-badge)](https://modelcontextprotocol.io/)
-[![Docker Ready](https://img.shields.io/badge/docker-ready-blue?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
-[![License](https://img.shields.io/github/license/jeancsil/agentic-framework?style=for-the-badge)](LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/jeancsil/agentic-framework/ci.yml?style=for-the-badge&logo=github&label=Build)](https://github.com/jeancsil/agentic-framework/actions)
-[![Coverage](https://img.shields.io/badge/coverage-80%25-brightgreen?style=for-the-badge)](https://github.com/jeancsil/agentic-framework)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue?style=plastic&logo=python&logoColor=white)](https://python.org)
+[![LangChain](https://img.shields.io/badge/langchain-%23007BA7.svg?style=plastic&logo=langchain&logoColor=white)](https://python.langchain.com/)
+[![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-green?style=plastic&logo=modelcontextprotocol&logoColor=white)](https://modelcontextprotocol.io/)
+[![Docker Ready](https://img.shields.io/badge/docker-ready-blue?style=plastic&logo=docker&logoColor=white)](https://www.docker.com/)
+[![License](https://img.shields.io/github/license/jeancsil/agentic-framework?style=plastic)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/jeancsil/agentic-framework/ci.yml?style=plastic&logo=github&label=Build)](https://github.com/jeancsil/agentic-framework/actions)
+[![Coverage](https://img.shields.io/badge/coverage-80%25-brightgreen?style=plastic)](https://github.com/jeancsil/agentic-framework)
 
 <br>
 
