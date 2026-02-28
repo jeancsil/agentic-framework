@@ -356,6 +356,76 @@ def test_get_pr_metadata_success(monkeypatch: object) -> None:
     assert "This PR adds feature X" in result
 
 
+# ---------------------------------------------------------------------------
+# Retry logic tests
+# ---------------------------------------------------------------------------
+
+
+def test_get_pr_diff_retries_on_429_and_succeeds(monkeypatch: object) -> None:
+    monkeypatch.setenv("GITHUB_TOKEN", "test-token")  # type: ignore[attr-defined]
+
+    rate_limited = MagicMock()
+    rate_limited.status_code = 429
+
+    success = MagicMock()
+    success.status_code = 200
+    success.raise_for_status = MagicMock()
+    success.json.return_value = []
+
+    with patch(
+        "agentic_framework.core.github_pr_reviewer.requests.get",
+        side_effect=[rate_limited, success],
+    ):
+        with patch("agentic_framework.core.github_pr_reviewer.time.sleep") as mock_sleep:
+            result = get_pr_diff("owner/repo", 42)
+
+    mock_sleep.assert_called_once_with(1)  # 2**0 = 1s first backoff
+    assert "Error" not in result
+    assert "0 file(s)" in result
+
+
+def test_post_general_comment_retries_on_503(monkeypatch: object) -> None:
+    monkeypatch.setenv("GITHUB_TOKEN", "test-token")  # type: ignore[attr-defined]
+
+    unavailable = MagicMock()
+    unavailable.status_code = 503
+
+    success = MagicMock()
+    success.status_code = 200
+    success.raise_for_status = MagicMock()
+    success.json.return_value = {"html_url": "https://github.com/owner/repo/pull/1#issuecomment-1"}
+
+    with patch(
+        "agentic_framework.core.github_pr_reviewer.requests.post",
+        side_effect=[unavailable, success],
+    ):
+        with patch("agentic_framework.core.github_pr_reviewer.time.sleep") as mock_sleep:
+            result = post_general_comment("owner/repo", 1, "summary")
+
+    mock_sleep.assert_called_once_with(1)
+    assert "Error" not in result
+    assert "https://github.com" in result
+
+
+# ---------------------------------------------------------------------------
+# Line-number validation tests
+# ---------------------------------------------------------------------------
+
+
+def test_post_review_comment_rejects_zero_line(monkeypatch: object) -> None:
+    monkeypatch.setenv("GITHUB_TOKEN", "test-token")  # type: ignore[attr-defined]
+    result = post_review_comment("owner/repo", 42, "abc123", "file.py", 0, "comment")
+    assert "Error" in result
+    assert "positive integer" in result
+
+
+def test_post_review_comment_rejects_negative_line(monkeypatch: object) -> None:
+    monkeypatch.setenv("GITHUB_TOKEN", "test-token")  # type: ignore[attr-defined]
+    result = post_review_comment("owner/repo", 42, "abc123", "file.py", -5, "comment")
+    assert "Error" in result
+    assert "positive integer" in result
+
+
 def test_get_pr_metadata_null_body(monkeypatch: object) -> None:
     """PR with null body should not crash."""
     monkeypatch.setenv("GITHUB_TOKEN", "test-token")  # type: ignore[attr-defined]

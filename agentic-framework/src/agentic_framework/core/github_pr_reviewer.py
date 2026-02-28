@@ -1,6 +1,7 @@
 """GitHub PR Review Agent for automated code review using the GitHub API."""
 
 import os
+import time
 from typing import Any, Sequence
 
 import requests
@@ -10,6 +11,34 @@ from agentic_framework.core.langgraph_agent import LangGraphMCPAgent
 from agentic_framework.registry import AgentRegistry
 
 _GITHUB_API_BASE = "https://api.github.com"
+_RETRYABLE_STATUS_CODES = frozenset({429, 503, 504})
+_MAX_RETRIES = 3
+
+
+def _github_request(method: str, url: str, **kwargs: Any) -> requests.Response:
+    """Make a GitHub API request with exponential backoff for transient errors.
+
+    Retries up to _MAX_RETRIES times on 429 (rate limited), 503, and 504 responses,
+    with delays of 1s, 2s between attempts (2**attempt seconds).
+
+    Args:
+        method: HTTP method — "get" or "post".
+        url: Full request URL.
+        **kwargs: Additional arguments forwarded to the underlying requests call.
+
+    Returns:
+        requests.Response from the last attempt.
+    """
+    for attempt in range(_MAX_RETRIES):
+        if method == "get":
+            response = requests.get(url, **kwargs)
+        else:
+            response = requests.post(url, **kwargs)
+        if response.status_code not in _RETRYABLE_STATUS_CODES:
+            return response
+        if attempt < _MAX_RETRIES - 1:
+            time.sleep(2**attempt)
+    return response
 
 
 def _get_headers() -> dict[str, str]:
@@ -51,7 +80,7 @@ def get_pr_diff(repo: str, pr_number: int) -> str:
         return err
     try:
         url = f"{_GITHUB_API_BASE}/repos/{repo}/pulls/{pr_number}/files"
-        response = requests.get(url, headers=_get_headers(), timeout=30)
+        response = _github_request("get", url, headers=_get_headers(), timeout=30)
         response.raise_for_status()
         files: list[dict[str, Any]] = response.json()
         lines = [f"PR #{pr_number} diff for {repo} ({len(files)} file(s) changed):"]
@@ -88,11 +117,11 @@ def get_pr_comments(repo: str, pr_number: int) -> str:
         review_url = f"{_GITHUB_API_BASE}/repos/{repo}/pulls/{pr_number}/comments"
         issue_url = f"{_GITHUB_API_BASE}/repos/{repo}/issues/{pr_number}/comments"
 
-        review_resp = requests.get(review_url, headers=headers, timeout=30)
+        review_resp = _github_request("get", review_url, headers=headers, timeout=30)
         review_resp.raise_for_status()
         review_comments: list[dict[str, Any]] = review_resp.json()
 
-        issue_resp = requests.get(issue_url, headers=headers, timeout=30)
+        issue_resp = _github_request("get", issue_url, headers=headers, timeout=30)
         issue_resp.raise_for_status()
         issue_comments: list[dict[str, Any]] = issue_resp.json()
 
@@ -133,7 +162,7 @@ def post_review_comment(repo: str, pr_number: int, commit_sha: str, path: str, l
         pr_number: Pull request number.
         commit_sha: The SHA of the commit to comment on (use head SHA from get_pr_metadata).
         path: File path relative to repository root.
-        line: Line number in the diff to comment on.
+        line: Line number in the diff to comment on (must be a positive integer).
         body: Markdown content of the review comment.
 
     Returns:
@@ -142,6 +171,11 @@ def post_review_comment(repo: str, pr_number: int, commit_sha: str, path: str, l
     err = _check_token()
     if err:
         return err
+    if line < 1:
+        return (
+            f"Error: line must be a positive integer, got {line}. "
+            "Use get_pr_diff to find the correct line number within the diff."
+        )
     try:
         url = f"{_GITHUB_API_BASE}/repos/{repo}/pulls/{pr_number}/comments"
         payload = {
@@ -150,7 +184,7 @@ def post_review_comment(repo: str, pr_number: int, commit_sha: str, path: str, l
             "path": path,
             "line": line,
         }
-        response = requests.post(url, headers=_get_headers(), json=payload, timeout=30)
+        response = _github_request("post", url, headers=_get_headers(), json=payload, timeout=30)
         response.raise_for_status()
         data: dict[str, Any] = response.json()
         html_url = str(data.get("html_url", ""))
@@ -176,7 +210,7 @@ def post_general_comment(repo: str, pr_number: int, body: str) -> str:
     try:
         url = f"{_GITHUB_API_BASE}/repos/{repo}/issues/{pr_number}/comments"
         payload = {"body": body}
-        response = requests.post(url, headers=_get_headers(), json=payload, timeout=30)
+        response = _github_request("post", url, headers=_get_headers(), json=payload, timeout=30)
         response.raise_for_status()
         data: dict[str, Any] = response.json()
         html_url = str(data.get("html_url", ""))
@@ -203,7 +237,7 @@ def reply_to_review_comment(repo: str, pr_number: int, comment_id: int, body: st
     try:
         url = f"{_GITHUB_API_BASE}/repos/{repo}/pulls/{pr_number}/comments/{comment_id}/replies"
         payload = {"body": body}
-        response = requests.post(url, headers=_get_headers(), json=payload, timeout=30)
+        response = _github_request("post", url, headers=_get_headers(), json=payload, timeout=30)
         response.raise_for_status()
         data: dict[str, Any] = response.json()
         html_url = str(data.get("html_url", ""))
@@ -228,7 +262,7 @@ def get_pr_metadata(repo: str, pr_number: int) -> str:
         return err
     try:
         url = f"{_GITHUB_API_BASE}/repos/{repo}/pulls/{pr_number}"
-        response = requests.get(url, headers=_get_headers(), timeout=30)
+        response = _github_request("get", url, headers=_get_headers(), timeout=30)
         response.raise_for_status()
         data: dict[str, Any] = response.json()
         title = str(data.get("title", ""))
@@ -241,6 +275,8 @@ def get_pr_metadata(repo: str, pr_number: int) -> str:
         changed_files = int(data.get("changed_files", 0))
         additions = int(data.get("additions", 0))
         deletions = int(data.get("deletions", 0))
+        # Truncate description to 2000 chars to keep the response manageable for the agent.
+        truncated_description = description[:2000]
         return (
             f"PR #{pr_number}: {title}\n"
             f"Author: {author}\n"
@@ -248,7 +284,7 @@ def get_pr_metadata(repo: str, pr_number: int) -> str:
             f"Base: {base_branch} <- Head: {head_branch}\n"
             f"Head SHA: {head_sha}\n"
             f"Changes: +{additions}/-{deletions} across {changed_files} file(s)\n"
-            f"Description:\n{description[:2000]}"
+            f"Description:\n{truncated_description}"
         )
     except Exception as exc:
         return f"Error fetching PR metadata for {repo}#{pr_number}: {exc}"
