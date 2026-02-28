@@ -34,7 +34,7 @@ def get_default_model() -> str:
         Default model name for the detected provider.
 
     Examples:
-        - Anthropic: "claude-3-5-sonnet-20241022"
+        - Anthropic: "claude-haiku-4-5-20251001"
         - OpenAI: "gpt-4o-mini"
     """
     provider = detect_provider()
