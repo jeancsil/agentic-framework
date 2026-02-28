@@ -62,15 +62,70 @@ Instead of spending days wiring together LLMs, tools, and execution environments
 
 ### 🤖 Agents
 
-| Agent | Purpose | MCP Servers | Local Tools |
-|-------|---------|-------------|-------------|
-| `developer` | **Code Master:** Read, search & edit code. | `webfetch` | *All codebase tools below* |
-| `travel-coordinator` | **Trip Planner:** Orchestrates agents. | `kiwi-com-flight-search`<br>`webfetch` | *Uses 3 sub-agents* |
-| `chef` | **Chef:** Recipes from your fridge. | `webfetch` | - |
-| `news` | **News Anchor:** Aggregates top stories. | `webfetch` | - |
-| `travel` | **Flight Booker:** Finds the best routes. | `kiwi-com-flight-search` | - |
-| `simple` | **Chat Buddy:** Vanilla conversational agent. | - | - |
-| `github-pr-reviewer` | **PR Reviewer:** Reviews diffs, posts inline comments & summaries. | - | `get_pr_diff`, `get_pr_comments`, `post_review_comment`, `post_general_comment`, `reply_to_review_comment`, `get_pr_metadata` |
+<table>
+  <thead>
+    <tr>
+      <th width="25%">Agent</th>
+      <th width="40%">Purpose</th>
+      <th width="15%">MCP Servers</th>
+      <th width="20%">Local Tools</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>developer</code></td>
+      <td><b>Code Master:</b> Read, search &amp; edit code.</td>
+      <td><code>webfetch</code></td>
+      <td><i>All codebase tools below</i></td>
+    </tr>
+    <tr>
+      <td><code>travel-coordinator</code></td>
+      <td><b>Trip Planner:</b> Orchestrates agents.</td>
+      <td><code>kiwi-com-flight-search</code><br><code>webfetch</code></td>
+      <td><i>Uses 3 sub-agents</i></td>
+    </tr>
+    <tr>
+      <td><code>chef</code></td>
+      <td><b>Chef:</b> Recipes from your fridge.</td>
+      <td><code>webfetch</code></td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td><code>news</code></td>
+      <td><b>News Anchor:</b> Aggregates top stories.</td>
+      <td><code>webfetch</code></td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td><code>travel</code></td>
+      <td><b>Flight Booker:</b> Finds the best routes.</td>
+      <td><code>kiwi-com-flight-search</code></td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td><code>simple</code></td>
+      <td><b>Chat Buddy:</b> Vanilla conversational agent.</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td><code>github-pr-reviewer</code></td>
+      <td><b>PR Reviewer:</b> Reviews diffs, posts inline comments &amp; summaries.</td>
+      <td>-</td>
+      <td>
+        <details>
+          <summary>View tools</summary>
+          <code>get_pr_diff</code><br>
+          <code>get_pr_comments</code><br>
+          <code>post_review_comment</code><br>
+          <code>post_general_comment</code><br>
+          <code>reply_to_review_comment</code><br>
+          <code>get_pr_metadata</code>
+        </details>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
 ### 📦 Local Tools (Zero External Dependencies)
 
