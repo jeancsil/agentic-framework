@@ -39,7 +39,7 @@ def get_default_model() -> str:
     """
     provider = detect_provider()
     if provider == "anthropic":
-        return os.getenv("ANTHROPIC_MODEL_NAME", "claude-3-5-sonnet-20241022")
+        return os.getenv("ANTHROPIC_MODEL_NAME", "claude-haiku-4-5-20251001")
     return os.getenv("OPENAI_MODEL_NAME", "gpt-4o-mini")
 
 
